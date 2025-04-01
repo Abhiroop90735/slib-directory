@@ -1,0 +1,73 @@
+[
+    {
+      "name": "React",
+      "version": "18.2.0",
+      "os": ["Mac", "Windows", "Linux"],
+      "license": "MIT",
+      "sample": "import React from 'react';"
+    },
+    {
+      "name": "TensorFlow",
+      "version": "2.14.0",
+      "os": ["Linux", "Windows"],
+      "license": "Apache 2.0",
+      "sample": "import tensorflow as tf"
+    },
+    {
+      "name": "Boost C++",
+      "version": "1.81.0",
+      "os": ["Mac", "Linux"],
+      "license": "Boost Software License",
+      "sample": "#include <boost/algorithm/string.hpp>"
+    },
+    {
+      "name": "Lodash",
+      "version": "4.17.21",
+      "os": ["Mac", "Windows"],
+      "license": "MIT",
+      "sample": "import _ from 'lodash';"
+    },
+    {
+      "name": "Django",
+      "version": "4.2",
+      "os": ["Linux", "Mac"],
+      "license": "BSD",
+      "sample": "import django"
+    },
+    {
+      "name": "Flask",
+      "version": "2.3",
+      "os": ["Mac", "Windows"],
+      "license": "BSD",
+      "sample": "from flask import Flask"
+    },
+    {
+      "name": "Angular",
+      "version": "16",
+      "os": ["Windows", "Linux"],
+      "license": "MIT",
+      "sample": "import { Component } from '@angular/core';"
+    },
+    {
+      "name": "Vue.js",
+      "version": "3.3",
+      "os": ["Mac", "Linux"],
+      "license": "MIT",
+      "sample": "import { createApp } from 'vue';"
+    },
+    {
+      "name": "OpenCV",
+      "version": "4.5",
+      "os": ["Linux", "Windows"],
+      "license": "BSD",
+      "sample": "import cv2"
+    },
+    {
+      "name": "Pandas",
+      "version": "1.5",
+      "os": ["Mac", "Linux"],
+      "license": "BSD",
+      "sample": "import pandas as pd"
+    }
+  ]
+  

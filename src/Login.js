@@ -21,17 +21,24 @@ function Login() {
     setIsLoading(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+  
       setIsTransitioning(true);
       setTimeout(() => {
-        navigate('/home');
-      }, 500); // after 500ms fade-out animation
+        if (user.email === 'abhiroop.m6@gmail.com') {
+          navigate('/admin'); // Redirect to admin
+        } else {
+          navigate('/home'); // Normal users go to Home
+        }
+      }, 500);
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
+  
   
 
   const handleRegister = async (e) => {

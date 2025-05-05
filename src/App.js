@@ -1,3 +1,4 @@
+// App.js
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Login from './Login';
@@ -6,6 +7,7 @@ import Compare from './Compare';
 import LibraryDetails from './LibraryDetails';
 import Feedback from './Feedback';
 import Admin from './Admin';
+import Stats from './Stats'; // 👈 NEW
 
 function App() {
   const [selectedLibs, setSelectedLibs] = useState([]);
@@ -13,20 +15,12 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
-      <Route 
-        path="/home" 
-        element={<Home setSelectedLibs={setSelectedLibs} />} 
-      />
-      <Route 
-  path="/compare" 
-  element={<Compare selectedLibs={selectedLibs} setSelectedLibs={setSelectedLibs} />} 
-/>
-      <Route 
-        path="/details/:name" 
-        element={<LibraryDetails />} 
-      />
+      <Route path="/home" element={<Home setSelectedLibs={setSelectedLibs} />} />
+      <Route path="/compare" element={<Compare selectedLibs={selectedLibs} setSelectedLibs={setSelectedLibs} />} />
+      <Route path="/details/:name" element={<LibraryDetails />} />
       <Route path="/feedback" element={<Feedback />} />
       <Route path="/admin" element={<Admin />} />
+      <Route path="/stats" element={<Stats />} /> {/* 👈 NEW */}
     </Routes>
   );
 }

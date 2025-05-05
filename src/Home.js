@@ -3,19 +3,20 @@ import { useNavigate, Link } from 'react-router-dom';
 import { db, auth } from './firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { FiGrid, FiServer } from 'react-icons/fi'; // 🗂️ Icon
 
 function Home({ setSelectedLibs }) {
-  const [search, setSearch] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [allLibs, setAllLibs] = useState([]);
-  const [filteredLibs, setFilteredLibs] = useState([]);
+  const [displayedLibs, setDisplayedLibs] = useState([]);
   const [selectedOS, setSelectedOS] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isLoading, setIsLoading] = useState(true);
   const [userEmail, setUserEmail] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
   const navigate = useNavigate();
 
   const getCategoryColor = (name) => {
+    if (!name) return '#f0db4f';
     if (name.includes('React')) return '#61dafb';
     if (name.includes('Node') || name.includes('Express')) return '#68a063';
     if (name.includes('Python') || name.includes('Django') || name.includes('Flask')) return '#3776ab';
@@ -38,10 +39,19 @@ function Home({ setSelectedLibs }) {
         const snapshot = await getDocs(collection(db, 'libraries'));
         const libs = snapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          name: doc.data().name || '',
+          description: doc.data().description || '',
+          os: doc.data().os || [],
+          license: doc.data().license || '',
+          category: doc.data().category || '',
+          website: doc.data().website || '',
+          version: doc.data().version || '',
+          cost: doc.data().cost || '',
+          sampleCode: doc.data().sampleCode || '',
+          dependencies: doc.data().dependencies || []
         }));
         setAllLibs(libs);
-        setFilteredLibs(libs);
+        setDisplayedLibs(libs);
       } catch (err) {
         console.error('Error fetching libraries:', err);
       } finally {
@@ -50,6 +60,35 @@ function Home({ setSelectedLibs }) {
     };
     fetchLibraries();
   }, []);
+
+  useEffect(() => {
+    const filterLibraries = () => {
+      let filtered = [...allLibs];
+
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        filtered = filtered.filter(lib =>
+          (lib.name && lib.name.toLowerCase().includes(term)) ||
+          (lib.description && lib.description.toLowerCase().includes(term))
+        );
+      }
+
+      if (selectedOS !== 'All') {
+        filtered = filtered.filter(lib =>
+          lib.os && lib.os.includes(selectedOS)
+        );
+      }
+
+      if (selectedCategory !== 'All') {
+        filtered = filtered.filter(lib =>
+          lib.category && lib.category.toLowerCase() === selectedCategory.toLowerCase()
+        );
+      }
+
+      setDisplayedLibs(filtered);
+    };
+    filterLibraries();
+  }, [searchTerm, selectedOS, selectedCategory, allLibs]);
 
   const handleLogout = async () => {
     try {
@@ -61,38 +100,21 @@ function Home({ setSelectedLibs }) {
   };
 
   const handleSearch = (e) => {
-    const query = e.target.value.toLowerCase();
-    setSearch(query);
-    applyFilters(query, selectedOS, selectedCategory);
+    setSearchTerm(e.target.value);
   };
 
   const handleFilterOS = (e) => {
-    const os = e.target.value;
-    setSelectedOS(os);
-    applyFilters(search, os, selectedCategory);
+    setSelectedOS(e.target.value);
   };
 
   const handleFilterCategory = (e) => {
-    const cat = e.target.value;
-    setSelectedCategory(cat);
-    applyFilters(search, selectedOS, cat);
-  };
-
-  const applyFilters = (searchQuery, osFilter, catFilter) => {
-    const results = allLibs.filter(lib => {
-      const matchesSearch = lib.name.toLowerCase().includes(searchQuery) || lib.description.toLowerCase().includes(searchQuery);
-      const matchesOS = osFilter === "All" || lib.os.includes(osFilter);
-      const matchesCategory = catFilter === "All" || (lib.category && lib.category.toLowerCase() === catFilter.toLowerCase());
-      return matchesSearch && matchesOS && matchesCategory;
-    });
-    setFilteredLibs(results);
+    setSelectedCategory(e.target.value);
   };
 
   const resetFilters = () => {
-    setSearch('');
+    setSearchTerm('');
     setSelectedOS('All');
     setSelectedCategory('All');
-    setFilteredLibs(allLibs);
   };
 
   const addToCompare = (lib) => {
@@ -105,12 +127,23 @@ function Home({ setSelectedLibs }) {
         alert('You can compare up to 4 libraries at once');
         return prev;
       }
+
+      setToastMessage(`${lib.name} added to compare`);
+      setTimeout(() => setToastMessage(''), 2000);
+
       return [...prev, lib];
     });
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 bg-green-500 text-white px-4 py-2 rounded-lg shadow-md z-50">
+          {toastMessage}
+        </div>
+      )}
+
       {/* Navbar */}
       <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
@@ -126,12 +159,19 @@ function Home({ setSelectedLibs }) {
               Feedback
             </button>
 
+            <button
+              onClick={() => navigate('/stats')}
+              className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 text-sm"
+            >
+              Stats
+            </button>
+
             {userEmail && (
               <span className="text-gray-600 text-sm hidden sm:inline">
                 Welcome, <span className="font-medium">{userEmail}</span>
               </span>
             )}
-            
+
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
@@ -147,46 +187,37 @@ function Home({ setSelectedLibs }) {
 
         {/* Search and Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <div className="flex-grow relative">
-            <input
-              type="text"
-              placeholder="Search libraries..."
-              value={search}
-              onChange={handleSearch}
-              className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-blue-500"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Search libraries..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="flex-grow px-4 py-3 border border-gray-300 rounded-md focus:ring-blue-500"
+          />
 
-          <div className="flex items-center gap-2">
-            <FiServer className="text-gray-400" />
-            <select
-              value={selectedOS}
-              onChange={handleFilterOS}
-              className="px-4 py-3 border border-gray-300 rounded-md focus:ring-blue-500"
-            >
-              <option value="All">All Platforms</option>
-              <option value="Mac">macOS</option>
-              <option value="Windows">Windows</option>
-              <option value="Linux">Linux</option>
-            </select>
-          </div>
+          <select
+            value={selectedOS}
+            onChange={handleFilterOS}
+            className="px-4 py-3 border border-gray-300 rounded-md focus:ring-blue-500"
+          >
+            <option value="All">All Platforms</option>
+            <option value="Mac">macOS</option>
+            <option value="Windows">Windows</option>
+            <option value="Linux">Linux</option>
+          </select>
 
-          <div className="flex items-center gap-2">
-            <FiGrid className="text-gray-400" />
-            <select
-              value={selectedCategory}
-              onChange={handleFilterCategory}
-              className="px-4 py-3 border border-gray-300 rounded-md focus:ring-blue-500"
-            >
-              <option value="All">All Categories</option>
-              <option value="Frontend Framework">Frontend Framework</option>
-              <option value="Backend Framework">Backend Framework</option>
-              <option value="Database">Database</option>
-              <option value="Testing">Testing</option>
-              <option value="Utilities">Utilities</option>
-              {/* Add more if needed */}
-            </select>
-          </div>
+          <select
+            value={selectedCategory}
+            onChange={handleFilterCategory}
+            className="px-4 py-3 border border-gray-300 rounded-md focus:ring-blue-500"
+          >
+            <option value="All">All Categories</option>
+            <option value="Frontend Framework">Frontend Framework</option>
+            <option value="Backend Framework">Backend Framework</option>
+            <option value="Database">Database</option>
+            <option value="Testing">Testing</option>
+            <option value="Utilities">Utilities</option>
+          </select>
 
           <button
             onClick={resetFilters}
@@ -199,7 +230,7 @@ function Home({ setSelectedLibs }) {
             onClick={() => navigate('/compare')}
             className="px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            Compare ({setSelectedLibs.length})
+            Compare
           </button>
         </div>
 
@@ -210,9 +241,22 @@ function Home({ setSelectedLibs }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredLibs.map((lib) => (
+            {displayedLibs.map((lib) => (
               <LibraryCard key={lib.id} lib={lib} addToCompare={addToCompare} getCategoryColor={getCategoryColor} />
             ))}
+          </div>
+        )}
+
+        {!isLoading && displayedLibs.length === 0 && (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-medium text-gray-700">No libraries found</h3>
+            <p className="text-gray-500 mt-2">Try adjusting your search or filters</p>
+            <button
+              onClick={resetFilters}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Reset All Filters
+            </button>
           </div>
         )}
       </main>
@@ -220,7 +264,6 @@ function Home({ setSelectedLibs }) {
   );
 }
 
-// Subcomponents
 const LibraryCard = ({ lib, addToCompare, getCategoryColor }) => (
   <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition p-6 border border-gray-100">
     <div className="h-2 w-full" style={{ backgroundColor: getCategoryColor(lib.name) }}></div>
@@ -230,10 +273,12 @@ const LibraryCard = ({ lib, addToCompare, getCategoryColor }) => (
       </Link>
       <p className="text-gray-600 text-sm mt-2">{lib.description}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        {lib.os.map((os, i) => (
+        {lib.os && lib.os.map((os, i) => (
           <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded-md">{os}</span>
         ))}
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-md">{lib.license}</span>
+        {lib.license && (
+          <span className="text-xs bg-gray-100 px-2 py-1 rounded-md">{lib.license}</span>
+        )}
       </div>
       {lib.category && (
         <div className="mt-2 text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-md inline-block">
@@ -242,9 +287,18 @@ const LibraryCard = ({ lib, addToCompare, getCategoryColor }) => (
       )}
     </div>
     <div className="flex justify-between items-center mt-6">
-      <a href={lib.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
-        Website
-      </a>
+      {lib.website ? (
+        <a 
+          href={lib.website} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-sm text-blue-600 hover:underline"
+        >
+          Website
+        </a>
+      ) : (
+        <span className="text-sm text-gray-400">No website</span>
+      )}
       <button
         onClick={() => addToCompare(lib)}
         className="text-sm px-3 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
